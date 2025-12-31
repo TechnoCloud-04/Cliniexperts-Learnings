@@ -1,0 +1,28 @@
+
+Autorenewal of SSL Certificates:
+
+To check status - sudo systemctl status certbot.timer
+
+To List timers of certbot - sudo systemctl list-timers --all|grep certbot
+
+To check status of nginx service - sudo systemctl status nginx
+
+
+
+
+Check auto-renewal timer - systemctl list-timers
+
+Enable certbot timer - sudo systemctl enable --now certbot.timer
+
+Test renewal - sudo certbot renew --dry-run
+
+Reload nginx after renew - Script in sudo nano /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
+#!/bin/bash
+systemctl reload nginx
+
+After this, to make it executable :
+
+sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
+Verify certificates - sudo certbot certificates
