@@ -1,28 +1,130 @@
+Complete SSL Setup and Auto-Renewal Using Certbot with NGINX
 
-Autorenewal of SSL Certificates:
 
-To check status - sudo systemctl status certbot.timer
-
-To List timers of certbot - sudo systemctl list-timers --all|grep certbot
-
-To check status of nginx service - sudo systemctl status nginx
+This documentation outlines the step-by-step process to install Certbot, obtain an SSL certificate from Let's Encrypt for NGINX, and configure automatic renewal with NGINX reload on success.
 
 
 
+1. **Install Certbot**
 
-Check auto-renewal timer - systemctl list-timers
+   Update the package list and install Certbot along with the NGINX plugin.
 
-Enable certbot timer - sudo systemctl enable --now certbot.timer
+   Command: 
 
-Test renewal - sudo certbot renew --dry-run
+   `sudo apt update `
 
-Reload nginx after renew - Script in sudo nano /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+   `sudo apt install certbot python3-certbot-nginx -y`
 
-#!/bin/bash
-systemctl reload nginx
+   
+2.  **Make sure DNS (A Record) for [example.com](http://example.com) points to the server public IP,**
 
-After this, to make it executable :
+   And Ensure port 80 & 443 are open in security groups.
 
-sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+   
+   How you can do this:
 
-Verify certificates - sudo certbot certificates
+   Go to your DNS provider (GoDaddy) and add the following DNS record:
+
+   `Type - A`
+
+   `Name - example`
+
+   `Value - public IP`
+
+   `TTL - auto or 300`
+
+   after adding, save the record.
+
+   
+   **Note**: You can check that your DNS is fully propagate or not using nslookup [example.com](http://example.com) 
+
+   
+3. **Obtain an SSL Certificate**
+
+   Before obtaining the certificate, ensure your domain is pointed to the server IP and NGINX is properly configured.
+
+   Command:
+
+   `sudo certbot --nginx -d example.com -d www.example.com`
+
+   Replace `example.com` with your actual domain name.
+
+   
+   Follow the prompts to:
+   * Select whether to redirect HTTP to HTTPS.
+   * Provide an email for urgent renewal and expiration notices.
+   * Agree to the terms of service.
+
+   If successful, Certbot will install and configure the SSL certificate for your domain.
+
+   
+   
+4. **Verify Certbot Auto-Renewal Timer**
+
+* Check if the `certbot.timer` is already active and scheduled by listing all systemd timers:
+
+    Command:  `systemctl list-timers`
+
+
+4. **Enable Certbot Timer**
+
+* If the `certbot.timer` is not enabled, activate it with the following command:
+
+    Command: `sudo systemctl enable --now certbot.timer`
+
+ **5.  Test Renewal Process**
+
+* To verify that the renewal process will function correctly when the certificate is close to    expiring, run a dry run:
+
+  Command: `sudo certbot renew --dry-run`
+
+  
+  
+  6. Reload NGINX After Certificate Renewal
+  * To automatically reload NGINX after a successful renewal (ensuring the new certificates are served), create a deployment hook script.
+
+    
+    6\.1: Create the Deployment Hook
+
+
+* Create the script at the following path:
+
+  Command:  `sudo nano /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`
+
+  
+  Insert the following content:
+
+  \#!/bin/bash 
+
+  `systemctl reload nginx`
+
+       6.2: Make the Script Executable
+
+* Set the correct permissions:
+
+  Command:  `sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`
+
+  
+  
+  7. Verify Certificate Installation
+
+  Check the currently installed certificates to ensure Certbot is managing them:
+
+  Command:  `sudo certbot certificates`
+
+  
+  This displays domain names, expiry dates, and certificate paths.
+
+  Example output:
+
+  ```
+  Found the following certs:
+    Certificate Name: example.com
+      Domains: example.com www.example.com
+      Expiry Date: 2025-07-16 10:00:00+00:00 (VALID: 60 days)
+      Certificate Path: /etc/letsencrypt/live/example.com/fullchain.pem
+      Private Key Path: /etc/letsencrypt/live/example.com/privkey.pem
+  ```
+
+
+Note: Let’s Encrypt certificates are valid for 90 days. Certbot's timer checks twice daily to renew certificates automatically if they are near expiration. This setup ensures minimal downtime and continuous secure HTTPS access.
